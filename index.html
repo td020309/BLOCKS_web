@@ -111,6 +111,10 @@
     <div class="header-bar">
       <div class="header-left">
         <h1 class="app-title">Blocks</h1>
+        <div class="view-switcher">
+          <button id="segWeekly" class="view-switch-btn active" onclick="setViewMode('weekly')">주간 뷰</button>
+          <button id="segMonthly" class="view-switch-btn" onclick="setViewMode('monthly')">월간 뷰</button>
+        </div>
       </div>
       <div class="header-utilities">
         <div class="settings-container">
@@ -153,23 +157,19 @@
       <div class="control-bar-center">
         <!-- 주간뷰 네비게이션 -->
         <div id="weeklyNav" class="nav-group">
-          <button id="viewToggleBtnWeekly" class="view-toggle-btn" title="월간 뷰로 전환" onclick="toggleViewMode()">
-            <span class="view-toggle-icon">📅</span>
-          </button>
           <button onclick="prevWeek()">⟵ 저번주</button>
           <button id="btnThisWeek" class="current" onclick="thisWeek()">이번주</button>
           <button onclick="nextWeek()">다음주 ⟶</button>
           <button id="btnDeadlineMode" class="icon-btn deadline" title="데드라인 모드" onclick="toggleDeadlineMode()">⎯</button>
+          <button id="btnMonth" class="icon-btn" title="달력 보기 (기념일/생일)">📆</button>
         </div>
         <!-- 월간뷰 네비게이션 -->
         <div id="monthlyNav" class="nav-group" style="display:none;">
-          <button id="viewToggleBtnMonthly" class="view-toggle-btn" title="주간 뷰로 전환" onclick="toggleViewMode()">
-            <span class="view-toggle-icon">📆</span>
-          </button>
           <button onclick="prevQuadrantMonth()">⟵ 저번달</button>
           <button id="btnThisMonth" class="current" onclick="thisMonth()">이번달</button>
           <button onclick="nextQuadrantMonth()">다음달 ⟶</button>
           <button id="btnDeadlineModeMonthly" class="icon-btn deadline" title="데드라인 모드" onclick="toggleDeadlineMode()">⎯</button>
+          <button id="btnMonthMonthly" class="icon-btn" title="달력 보기 (기념일/생일)">📆</button>
         </div>
       </div>
     </div>
@@ -253,6 +253,25 @@
     </div>
   </div>
 
+  <div class="modal" id="monthModal">
+    <div class="modal-content" style="min-width: 720px;">
+      <div class="month-head">
+        <button class="icon-btn" onclick="shiftMonth(-1)">⟵</button>
+        <div class="title" id="monthTitle">
+          <div class="month-title-group">
+            <h2 class="month-number">11</h2>
+            <div class="month-sub">
+              <span class="year-number">2025</span>
+              <span class="month-text">NOVEMBER</span>
+            </div>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="shiftMonth(1)">⟶</button>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+      <div class="hint">원하는 날짜를 눌러 <b>기념일/생일</b> 라벨을 추가하세요. 동그라미와 라벨은 주간 보기에 자동 반영됩니다.</div>
+    </div>
+  </div>
 
 
   <div class="modal" id="specialModal">

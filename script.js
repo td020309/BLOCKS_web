@@ -1446,9 +1446,30 @@ function openClickAddPopup(event, cellInfo) {
     const texts = TEXTS[currentLanguage];
     const header = document.createElement('div');
     header.className = 'click-add-header';
+    
+    // 제목과 플러스 버튼을 함께 묶는 컨테이너
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'click-add-title-container';
+    
     const title = document.createElement('div');
     title.className = 'click-add-title';
     title.textContent = texts?.clickAdd?.title || (currentLanguage === 'ko' ? '블럭 선택' : 'Select block');
+    
+    // 플러스 버튼 추가 (일회용 블럭 추가)
+    const addOneTimeBtn = document.createElement('button');
+    addOneTimeBtn.type = 'button';
+    addOneTimeBtn.className = 'click-add-plus';
+    addOneTimeBtn.setAttribute('aria-label', 'Add one-time block');
+    addOneTimeBtn.textContent = '+';
+    addOneTimeBtn.title = currentLanguage === 'ko' ? '일회용 블럭 추가' : 'Add one-time block';
+    addOneTimeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showOneTimeBlockForm();
+    });
+    
+    titleContainer.appendChild(title);
+    titleContainer.appendChild(addOneTimeBtn);
+    
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'click-add-close';
@@ -1458,7 +1479,8 @@ function openClickAddPopup(event, cellInfo) {
         e.stopPropagation();
         closeClickAddPopup();
     });
-    header.appendChild(title);
+    
+    header.appendChild(titleContainer);
     header.appendChild(closeBtn);
     clickAddPopup.appendChild(header);
     
@@ -1466,7 +1488,24 @@ function openClickAddPopup(event, cellInfo) {
     list.className = 'click-add-list';
     clickAddPopup.appendChild(list);
     
-    blocksConfig.forEach(block => {
+    // DOM의 블럭 순서와 동기화하여 최신 순서 보장
+    const blockListContainer = document.getElementById('blockList');
+    const currentOrder = [];
+    if (blockListContainer) {
+        const blockElements = blockListContainer.querySelectorAll('.block');
+        blockElements.forEach(blockEl => {
+            const blockName = blockEl.dataset.name;
+            const block = blocksConfig.find(b => b.name === blockName);
+            if (block) {
+                currentOrder.push(block);
+            }
+        });
+    }
+    
+    // DOM에서 순서를 찾지 못한 경우 blocksConfig 순서 사용
+    const blocksToShow = currentOrder.length === blocksConfig.length ? currentOrder : blocksConfig;
+    
+    blocksToShow.forEach(block => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'click-add-item';
@@ -1511,6 +1550,168 @@ function addBlockFromClick(blockConfig) {
     closeClickAddPopup();
     renderMainView();
 }
+
+// 일회용 블럭 입력 폼 표시
+function showOneTimeBlockForm() {
+    if (!clickAddPopup || !clickAddTarget) return;
+    
+    const list = clickAddPopup.querySelector('.click-add-list');
+    if (!list) return;
+    
+    // 기존 리스트 숨기기
+    list.style.display = 'none';
+    
+    // 일회용 블럭 입력 폼 생성
+    let form = clickAddPopup.querySelector('.one-time-block-form');
+    if (!form) {
+        form = document.createElement('div');
+        form.className = 'one-time-block-form';
+        
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = currentLanguage === 'ko' ? '이름' : 'Name';
+        nameLabel.style.display = 'block';
+        nameLabel.style.marginBottom = '6px';
+        nameLabel.style.fontSize = '13px';
+        nameLabel.style.fontWeight = '600';
+        nameLabel.style.color = 'var(--muted)';
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'one-time-block-name';
+        nameInput.placeholder = currentLanguage === 'ko' ? '블럭 이름' : 'Block name';
+        nameInput.style.width = '100%';
+        nameInput.style.padding = '8px 10px';
+        nameInput.style.border = '1px solid #e5e7eb';
+        nameInput.style.borderRadius = '8px';
+        nameInput.style.fontSize = '14px';
+        nameInput.style.marginBottom = '12px';
+        nameInput.style.outline = 'none';
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addOneTimeBlock();
+            }
+        });
+        
+        const colorRow = document.createElement('div');
+        colorRow.style.display = 'flex';
+        colorRow.style.alignItems = 'center';
+        colorRow.style.gap = '8px';
+        colorRow.style.marginBottom = '12px';
+        
+        const colorLabel = document.createElement('label');
+        colorLabel.textContent = currentLanguage === 'ko' ? '색상' : 'Color';
+        colorLabel.style.fontSize = '13px';
+        colorLabel.style.fontWeight = '600';
+        colorLabel.style.color = 'var(--muted)';
+        
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'one-time-block-color';
+        colorInput.value = '#888888';
+        colorInput.style.width = '42px';
+        colorInput.style.height = '32px';
+        colorInput.style.padding = '0';
+        colorInput.style.border = 'none';
+        colorInput.style.borderRadius = '8px';
+        colorInput.style.cursor = 'pointer';
+        
+        colorRow.appendChild(colorLabel);
+        colorRow.appendChild(colorInput);
+        
+        const buttonRow = document.createElement('div');
+        buttonRow.style.display = 'flex';
+        buttonRow.style.gap = '8px';
+        buttonRow.style.justifyContent = 'flex-end';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'one-time-block-cancel';
+        cancelBtn.textContent = currentLanguage === 'ko' ? '취소' : 'Cancel';
+        cancelBtn.style.padding = '8px 16px';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.borderRadius = '8px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.style.fontSize = '14px';
+        cancelBtn.style.fontWeight = '600';
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            list.style.display = 'flex';
+            form.style.display = 'none';
+        });
+        
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.textContent = currentLanguage === 'ko' ? '추가' : 'Add';
+        addBtn.style.padding = '8px 16px';
+        addBtn.style.border = 'none';
+        addBtn.style.borderRadius = '8px';
+        addBtn.style.background = 'var(--primary)';
+        addBtn.style.color = '#fff';
+        addBtn.style.cursor = 'pointer';
+        addBtn.style.fontSize = '14px';
+        addBtn.style.fontWeight = '600';
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addOneTimeBlock();
+        });
+        
+        buttonRow.appendChild(cancelBtn);
+        buttonRow.appendChild(addBtn);
+        
+        form.appendChild(nameLabel);
+        form.appendChild(nameInput);
+        form.appendChild(colorRow);
+        form.appendChild(buttonRow);
+        
+        clickAddPopup.appendChild(form);
+    }
+    
+    // 입력 필드 초기화
+    const nameInput = form.querySelector('.one-time-block-name');
+    const colorInput = form.querySelector('.one-time-block-color');
+    if (nameInput) {
+        nameInput.value = '';
+        nameInput.focus();
+    }
+    if (colorInput) {
+        colorInput.value = '#888888';
+    }
+    
+    form.style.display = 'block';
+}
+
+// 일회용 블럭 추가
+function addOneTimeBlock() {
+    if (!clickAddTarget) return;
+    
+    const form = clickAddPopup?.querySelector('.one-time-block-form');
+    if (!form) return;
+    
+    const nameInput = form.querySelector('.one-time-block-name');
+    const colorInput = form.querySelector('.one-time-block-color');
+    
+    if (!nameInput || !colorInput) return;
+    
+    const name = nameInput.value.trim();
+    if (!name) {
+        alert(currentLanguage === 'ko' ? '이름을 입력해주세요.' : 'Please enter a name.');
+        return;
+    }
+    
+    const newPlaced = {
+        category: name,
+        color: colorInput.value,
+        date: clickAddTarget.date,
+        slot: clickAddTarget.slot,
+        memo: ''
+    };
+    
+    placedData.push(newPlaced);
+    saveState();
+    closeClickAddPopup();
+    renderMainView();
+}
 function handleCalendarCellClick(e, cellInfo) {
     if (deadlineMode) {
         e.stopPropagation();
@@ -1533,10 +1734,7 @@ document.addEventListener('click', (e) => {
     if (clickAddPopup.contains(e.target)) return;
     closeClickAddPopup();
 });
-window.addEventListener('resize', () => {
-    closeClickAddPopup();
-    adjustBlocksHeight();
-});
+window.addEventListener('resize', closeClickAddPopup);
 window.addEventListener('scroll', closeClickAddPopup, true);
 function openAddBlockModal() {
     editingBlockIndex = null;
@@ -1589,13 +1787,42 @@ function saveBlock() {
     if (editingBlockIndex !== null) {
         // 수정 모드
         const existingBlock = blocksConfig[editingBlockIndex];
+        const oldName = existingBlock.name;
+        const oldColor = existingBlock.color;
+        
         // 이름이 변경되었고, 다른 블럭과 중복되는지 확인
-        if (name !== existingBlock.name && blocksConfig.some((b, i) => i !== editingBlockIndex && b.name === name)) {
+        if (name !== oldName && blocksConfig.some((b, i) => i !== editingBlockIndex && b.name === name)) {
             alert(currentLanguage === 'ko' ? '같은 이름의 블럭이 이미 있어요.' : 'A block with this name already exists.');
             return;
         }
+        
         blocksConfig[editingBlockIndex].name = name;
         blocksConfig[editingBlockIndex].color = color;
+        
+        // 색상이 변경되었거나 이름이 변경된 경우, placedData와 recurringData 업데이트
+        if (color !== oldColor || name !== oldName) {
+            // placedData에서 해당 블록의 색상 업데이트
+            placedData.forEach(b => {
+                if (b.category === oldName) {
+                    b.color = color;
+                    // 이름이 변경된 경우 category도 업데이트
+                    if (name !== oldName) {
+                        b.category = name;
+                    }
+                }
+            });
+            
+            // recurringData에서 해당 블록의 색상 업데이트
+            recurringData.forEach(r => {
+                if (r.category === oldName) {
+                    r.color = color;
+                    // 이름이 변경된 경우 category도 업데이트
+                    if (name !== oldName) {
+                        r.category = name;
+                    }
+                }
+            });
+        }
     } else {
         // 추가 모드
         if (blocksConfig.some(b => b.name === name)) {
@@ -2130,9 +2357,6 @@ function renderCalendar() {
     if (btnThisWeek) {
         btnThisWeek.classList.toggle('current', isThisWeek);
     }
-    
-    // 블럭 높이를 캘린더 테이블 높이에 맞추기
-    adjustBlocksHeight();
 }
 function prevWeek() { 
     currentMonday = new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() - 7); 
@@ -2446,7 +2670,61 @@ function saveMemo() {
             });
         }
         if (wasRecurring && selectedBlock.dataset.recurringId) {
+            // 반복 체크박스를 해제할 때: 과거 데이터를 placedData에 저장하여 유지
             const recurringId = selectedBlock.dataset.recurringId;
+            const currentDate = blockInfo.date;
+            const currentSlot = blockInfo.slot;
+            const currentCategory = blockInfo.category;
+            
+            // recurringData에서 해당 항목 찾기
+            const recurringIndex = recurringData.findIndex(r => r.id === recurringId);
+            if (recurringIndex > -1) {
+                const recurringItem = recurringData[recurringIndex];
+                const weekday = recurringItem.weekday;
+                
+                // 현재 날짜 이전의 모든 반복 블록을 placedData에 저장하여 유지
+                // 원칙: 수정하는 블록보다 과거는 건드리지 않음
+                const currentDateObj = fromYMDLocal(currentDate);
+                currentDateObj.setHours(0, 0, 0, 0);
+                
+                // 반복 스케줄의 시작일 확인
+                const startDate = recurringItem.startDate ? fromYMDLocal(recurringItem.startDate) : currentDateObj;
+                startDate.setHours(0, 0, 0, 0);
+                
+                // 시작일부터 현재 날짜 이전까지의 모든 해당 요일을 placedData에 저장
+                let dateToCheck = new Date(startDate);
+                while (dateToCheck < currentDateObj) {
+                    const dateStr = ymdLocal(dateToCheck);
+                    const dateWeekday = getWeekdayFromDateString(dateStr);
+                    
+                    // 같은 요일이고, 현재 날짜 이전인 경우 placedData에 저장
+                    if (dateWeekday === weekday) {
+                        // 이미 placedData에 있는지 확인 (중복 방지)
+                        const exists = placedData.some(b => 
+                            b.date === dateStr && 
+                            b.slot === currentSlot && 
+                            b.category === currentCategory
+                        );
+                        
+                        if (!exists) {
+                            placedData.push({
+                                category: currentCategory,
+                                color: recurringItem.color,
+                                date: dateStr,
+                                slot: currentSlot,
+                                memo: recurringItem.memo || '',
+                                time: recurringItem.time || ''
+                            });
+                        }
+                    }
+                    
+                    // 다음 날로 이동
+                    dateToCheck.setDate(dateToCheck.getDate() + 1);
+                }
+            }
+            
+            // recurringData에서 항목 제거 (미래 스케줄 생성 방지)
+            // 과거 스케줄은 이미 placedData에 저장되어 있어서 유지됨
             recurringData = recurringData.filter(r => r.id !== recurringId);
         }
         selectedBlock.dataset.recurring = 'false';
@@ -2462,12 +2740,63 @@ function saveMemo() {
 function deletePlaced() {
     if (!selectedBlock) return;
     if (selectedBlock.dataset.recurring === 'true' && selectedBlock.dataset.recurringId) {
-        // 반복 블록 삭제: recurringData에서만 제거
-        // placedData는 건드리지 않음 (과거 기록 유지)
+        // 반복 블록 삭제: 지우는 블록과 그 블록에 비해 미래에 있는 블록만 지워야 함
+        // 과거 스케줄은 placedData에 저장하여 유지해야 함
         const recurringId = selectedBlock.dataset.recurringId;
-        recurringData = recurringData.filter(r => r.id !== recurringId);
-        // recurringData에서 제거하면 미래 날짜에 자동으로 생성되지 않음
-        // 과거 기록은 placedData에 있든 없든 그대로 유지됨
+        const currentDate = selectedBlock.dataset.date;
+        const currentSlot = selectedBlock.dataset.slot;
+        const currentCategory = selectedBlock.dataset.category;
+        
+        // recurringData에서 해당 항목 찾기
+        const recurringIndex = recurringData.findIndex(r => r.id === recurringId);
+        if (recurringIndex > -1) {
+            const recurringItem = recurringData[recurringIndex];
+            const weekday = recurringItem.weekday;
+            
+            // 현재 날짜 이전의 모든 반복 블록을 placedData에 저장하여 유지
+            // 원칙: 수정하는 블록보다 과거는 건드리지 않음
+            const currentDateObj = fromYMDLocal(currentDate);
+            currentDateObj.setHours(0, 0, 0, 0);
+            
+            // 반복 스케줄의 시작일 확인
+            const startDate = recurringItem.startDate ? fromYMDLocal(recurringItem.startDate) : currentDateObj;
+            startDate.setHours(0, 0, 0, 0);
+            
+            // 시작일부터 현재 날짜 이전까지의 모든 해당 요일을 placedData에 저장
+            let dateToCheck = new Date(startDate);
+            while (dateToCheck < currentDateObj) {
+                const dateStr = ymdLocal(dateToCheck);
+                const dateWeekday = getWeekdayFromDateString(dateStr);
+                
+                // 같은 요일이고, 현재 날짜 이전인 경우 placedData에 저장
+                if (dateWeekday === weekday) {
+                    // 이미 placedData에 있는지 확인 (중복 방지)
+                    const exists = placedData.some(b => 
+                        b.date === dateStr && 
+                        b.slot === currentSlot && 
+                        b.category === currentCategory
+                    );
+                    
+                    if (!exists) {
+                        placedData.push({
+                            category: currentCategory,
+                            color: recurringItem.color,
+                            date: dateStr,
+                            slot: currentSlot,
+                            memo: recurringItem.memo || '',
+                            time: recurringItem.time || ''
+                        });
+                    }
+                }
+                
+                // 다음 날로 이동
+                dateToCheck.setDate(dateToCheck.getDate() + 1);
+            }
+            
+            // recurringData에서 항목 제거 (미래 스케줄 생성 방지)
+            // 과거 스케줄은 이미 placedData에 저장되어 있어서 유지됨
+            recurringData = recurringData.filter(r => r.id !== recurringId);
+        }
     } else {
         // 일반 블록 삭제: 해당 날짜의 placedData에서만 제거
         placedData = placedData.filter(b => !(b.date === selectedBlock.dataset.date && b.slot === selectedBlock.dataset.slot && b.category === selectedBlock.dataset.category));
@@ -2512,6 +2841,23 @@ function deleteDeadline() {
     closeDeadline(); renderCalendar();
 }
 function closeDeadline() { document.getElementById('deadlineModal').style.display = 'none'; deadlineEditingKey = null; }
+// 달력 버튼 이벤트 리스너 (주간/월간 모두)
+const btnMonthWeekly = document.getElementById('btnMonth');
+const btnMonthMonthly = document.getElementById('btnMonthMonthly');
+
+if (btnMonthWeekly) {
+    btnMonthWeekly.addEventListener('click', () => {
+        document.getElementById('monthModal').style.display = 'flex';
+        renderMonth();
+    });
+}
+
+if (btnMonthMonthly) {
+    btnMonthMonthly.addEventListener('click', () => {
+        document.getElementById('monthModal').style.display = 'flex';
+        renderMonth();
+    });
+}
 
 // 설정 메뉴 토글
 function toggleSettingsMenu() {
@@ -2585,19 +2931,12 @@ function updateViewModeUI() {
         
         // 주간뷰 네비게이션 버튼 텍스트 업데이트
         if (weeklyNav) {
-            const weeklyNavButtons = weeklyNav.querySelectorAll('button:not(.view-toggle-btn):not(.icon-btn)');
+            const weeklyNavButtons = weeklyNav.querySelectorAll('button');
             if (weeklyNavButtons.length >= 3) {
                 weeklyNavButtons[0].textContent = texts.nav.prevWeek;
                 weeklyNavButtons[1].textContent = texts.nav.thisWeek;
                 weeklyNavButtons[2].textContent = texts.nav.nextWeek;
             }
-        }
-        
-        // 뷰 전환 버튼 업데이트 (주간뷰에서는 월간뷰로 전환 아이콘)
-        const viewToggleBtnWeekly = document.getElementById('viewToggleBtnWeekly');
-        if (viewToggleBtnWeekly) {
-            viewToggleBtnWeekly.title = currentLanguage === 'ko' ? '월간 뷰로 전환' : 'Switch to Monthly';
-            viewToggleBtnWeekly.querySelector('.view-toggle-icon').textContent = '📅';
         }
     } else {
         if (weeklyNav) weeklyNav.style.display = 'none';
@@ -2625,19 +2964,12 @@ function updateViewModeUI() {
         
         // 월간뷰 네비게이션 버튼 텍스트 업데이트
         if (monthlyNav) {
-            const monthlyNavButtons = monthlyNav.querySelectorAll('button:not(.view-toggle-btn):not(.icon-btn)');
+            const monthlyNavButtons = monthlyNav.querySelectorAll('button');
             if (monthlyNavButtons.length >= 3) {
                 monthlyNavButtons[0].textContent = currentLanguage === 'ko' ? '⟵ 저번달' : '⟵ Last Month';
                 monthlyNavButtons[1].textContent = currentLanguage === 'ko' ? '이번달' : 'This Month';
                 monthlyNavButtons[2].textContent = currentLanguage === 'ko' ? '다음달 ⟶' : 'Next Month ⟶';
             }
-        }
-        
-        // 뷰 전환 버튼 업데이트 (월간뷰에서는 주간뷰로 전환 아이콘)
-        const viewToggleBtnMonthly = document.getElementById('viewToggleBtnMonthly');
-        if (viewToggleBtnMonthly) {
-            viewToggleBtnMonthly.title = currentLanguage === 'ko' ? '주간 뷰로 전환' : 'Switch to Weekly';
-            viewToggleBtnMonthly.querySelector('.view-toggle-icon').textContent = '📆';
         }
     }
     updateDateRangeDisplay();
@@ -2686,25 +3018,6 @@ function updateDateRangeDisplay() {
             dateRangeText.textContent = `${y}. ${String(m + 1).padStart(2, '0')}`;
         }
     }
-}
-
-// 블럭 높이를 캘린더 테이블 높이에 맞추기
-function adjustBlocksHeight() {
-    if (viewMode !== 'weekly') return; // 주간뷰에서만 적용
-    
-    const table = document.getElementById('calendarTable');
-    const blocks = document.getElementById('blockList');
-    
-    if (!table || !blocks) return;
-    
-    // 테이블이 렌더링된 후 높이 측정
-    setTimeout(() => {
-        const tableHeight = table.offsetHeight;
-        if (tableHeight > 0) {
-            // 테이블 높이에 맞춰 블럭 최대 높이 설정 (padding-top 포함)
-            blocks.style.maxHeight = `${tableHeight + 14}px`; // padding-top 14px 포함
-        }
-    }, 0);
 }
 
 // 기간 이동 함수 (주간/월간 자동 처리)
@@ -2965,6 +3278,7 @@ function renderQuadrantViewMain() {
         grid.appendChild(cell);
     }
 }
+function shiftMonth(delta) { monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + delta, 1); renderMonth(); }
 function renderMonth() {
     const grid = document.getElementById('monthGrid'); 
     const title = document.getElementById('monthTitle'); 
@@ -3141,6 +3455,7 @@ function saveSpecial() {
     specialDays.push(newSpecial);
     saveState();
     openSpecialModal(specialEditingDate); // 모달 새로고침
+    renderMonth();
     renderCalendar();
 }
 
@@ -3150,6 +3465,7 @@ function deleteSpecialItem(id) {
     specialDays = specialDays.filter(s => s.id !== id);
     saveState();
     openSpecialModal(specialEditingDate); // 모달 새로고침
+    renderMonth();
     renderCalendar();
 }
 
@@ -3160,7 +3476,7 @@ function closeSpecial() {
 
 function wireGlobalClosing() {
     window.addEventListener('click', (e) => {
-        ['modal', 'addBlockModal', 'specialModal', 'deadlineModal', 'timeModal'].forEach(id => {
+        ['modal', 'addBlockModal', 'monthModal', 'specialModal', 'deadlineModal', 'timeModal'].forEach(id => {
             const el = document.getElementById(id); 
             if (e.target === el) {
                 if (id === 'addBlockModal') {
@@ -3187,9 +3503,8 @@ function wireGlobalClosing() {
                 e.preventDefault();
                 return;
             }
-            ['modal', 'specialModal', 'deadlineModal'].forEach(id => {
-                const modalEl = document.getElementById(id);
-                if (modalEl) modalEl.style.display = 'none';
+            ['modal', 'monthModal', 'specialModal', 'deadlineModal'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
             });
         }
     });
